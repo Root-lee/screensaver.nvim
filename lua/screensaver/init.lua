@@ -185,15 +185,30 @@ local function start_animation()
 end
 
 local function setup_on_key()
-  vim.on_key(function(char)
-    if state.launching then
-      return
-    end
-    if char == " " then
+  if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+    vim.keymap.set("n", " ", function()
       M.stop()
       M._on_activity()
+    end, { buffer = state.buf, nowait = true, silent = true })
+
+    local nop = function() end
+    local keys = { 
+      "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", 
+      "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+      "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", 
+      "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+      "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+      "`", "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_", "=", "+",
+      "[", "{", "]", "}", "\\", "|", ";", ":", "'", "\"", ",", "<", ".", ">", "/", "?",
+      "<Esc>", "<CR>", "<BS>", "<Tab>", "<Up>", "<Down>", "<Left>", "<Right>",
+      "<PageUp>", "<PageDown>", "<Home>", "<End>", "<Insert>", "<Delete>",
+      "<C-w>"
+    }
+    
+    for _, k in ipairs(keys) do
+      pcall(vim.keymap.set, "n", k, nop, { buffer = state.buf, nowait = true, silent = true })
     end
-  end, state.on_key_ns)
+  end
 end
 
 local function clear_on_key()
@@ -379,21 +394,40 @@ local function setup_autocmds()
         end
       end
 
-      if state.active and vim.v.event and vim.v.event.event == "VimResized" then
-        vim.schedule(function()
-          if state.win and vim.api.nvim_win_is_valid(state.win) then
-            local width, height = ui_size()
-            vim.api.nvim_win_set_config(state.win, {
-              relative = "editor",
-              row = 0,
-              col = 0,
-              width = width,
-              height = height,
-            })
-          end
-        end)
+      if state.active then
+         -- Enforce focus in screensaver window if user tries to switch away
+         if args.event == "WinEnter" or args.event == "BufEnter" then
+             if state.win and vim.api.nvim_win_is_valid(state.win) then
+                 local cur_win = vim.api.nvim_get_current_win()
+                 if cur_win ~= state.win then
+                     vim.schedule(function()
+                         if state.active and vim.api.nvim_win_is_valid(state.win) then
+                             vim.api.nvim_set_current_win(state.win)
+                         end
+                     end)
+                 end
+             end
+         end
+         
+         if vim.v.event and vim.v.event.event == "VimResized" then
+           vim.schedule(function()
+             if state.win and vim.api.nvim_win_is_valid(state.win) then
+               local width, height = ui_size()
+               vim.api.nvim_win_set_config(state.win, {
+                 relative = "editor",
+                 row = 0,
+                 col = 0,
+                 width = width,
+                 height = height,
+               })
+             end
+           end)
+         end
+
+         -- Do not stop screensaver on generic activity
+         return
       end
-      
+
       M._on_activity()
     end,
   })
