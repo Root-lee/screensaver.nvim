@@ -9,6 +9,7 @@ local default_config = {
 	frame_ms = 80,
 	enabled = true,
 	auto_start = true,
+	disable_on_focus_lost = true,
 	animations = animations_module.get_all_names(),
 	winblend = 0,
 }
@@ -437,6 +438,17 @@ local function setup_autocmds()
 	if vim.fn.exists("##KeyInput") == 1 then
 		table.insert(events, "KeyInput")
 	end
+
+	vim.api.nvim_create_autocmd("FocusLost", {
+		group = state.augroup,
+		callback = function()
+			if state.config.disable_on_focus_lost then
+				if state.idle_timer then
+					state.idle_timer:stop()
+				end
+			end
+		end,
+	})
 
 	vim.api.nvim_create_autocmd(events, {
 		group = state.augroup,

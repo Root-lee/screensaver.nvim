@@ -10,6 +10,7 @@ When you stay idle for 60 seconds (default), this plugin activates a screensaver
 - 🎨 **Rich Animations**: Includes a variety of effects like Matrix rain, Game of Life, sliding text, and more!
 - 🔒 **Safe Mode**: While active, your buffer is protected. Only pressing **Space** exits the screensaver.
 - 🚀 **Interactive**: Many animations (like `game_of_life`, `scramble`) play with your existing code content!
+- ⏸️ **Focus Aware**: Pauses auto-start when Neovim loses focus (great for tmux users!).
 
 ## 📦 Install
 
@@ -58,6 +59,10 @@ require("screensaver").setup({
   -- 🚀 Automatically start screensaver after idle time (set to false for manual only)
   auto_start = true,
   
+  -- 🛡️ Disable auto-start when Neovim loses focus (e.g. switching tmux windows)
+  -- Requires `set -g focus-events on` in your tmux.conf
+  disable_on_focus_lost = true,
+  
   -- 🎞️ Refresh rate for animations (lower = faster/smoother)
   frame_ms = 80,
   
@@ -101,6 +106,16 @@ require("screensaver").setup({
 - **Exit**: Press **Space** to exit the screensaver and return to your code.
 - **Protection**: While the screensaver is running, other keys are blocked to prevent accidental edits.
 - The screensaver creates a floating window that overlays your current buffer.
+
+### Tmux Support
+
+If you use **tmux**, you likely don't want the screensaver starting when you've switched to another window. This plugin handles `FocusLost` events to pause the idle timer.
+
+**Required**: Add this to your `~/.tmux.conf` or `~/.config/tmux/tmux.conf` to enable focus events:
+
+```tmux
+set -g focus-events on
+```
 
 ---
 
