@@ -47,10 +47,14 @@ local function ui_size()
   return ui.width, ui.height
 end
 
-local function pick_animation()
+local function pick_animation(name)
+  if name and animations_module.get_animation(name) then
+    return name, animations_module.get_animation(name)
+  end
+  
   local list = state.config.animations
-  local name = list[math.random(1, #list)]
-  return name, animations_module.get_animation(name)
+  local picked = list[math.random(1, #list)]
+  return picked, animations_module.get_animation(picked)
 end
 
 local function stop_anim_timer()
@@ -216,7 +220,7 @@ local function ensure_highlight()
   })
 end
 
-function M.start()
+function M.start(anim_name)
   if state.active then
     return
   end
@@ -231,7 +235,7 @@ function M.start()
   -- Capture grid BEFORE creating window, using the current window
   state.grid = utils.snapshot_window(state.last_win)
 
-  local name, anim = pick_animation()
+  local name, anim = pick_animation(anim_name)
   state.animation = anim
   state.anim_state = anim.init(state.grid)
   
