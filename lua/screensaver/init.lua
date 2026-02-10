@@ -370,6 +370,7 @@ end
 
 function M.stop()
 	if not state.active then
+		M._on_activity()
 		return
 	end
 
@@ -389,6 +390,8 @@ function M.stop()
 			pcall(vim.api.nvim_set_current_win, state.last_win)
 		end
 		state.last_win = nil
+
+		M._on_activity()
 	end)
 end
 
@@ -457,6 +460,11 @@ local function setup_autocmds()
 		group = state.augroup,
 		callback = function(args)
 			if state.launching or state.rendering then
+				return
+			end
+
+			if args.event == "CmdlineEnter" then
+				M._on_activity()
 				return
 			end
 
