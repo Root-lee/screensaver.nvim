@@ -1,12 +1,14 @@
 local M = {}
+local utils = require("screensaver.utils")
+local animations_module = require("screensaver.animations")
 
 local uv = vim.loop
 
 local default_config = {
   idle_ms = 60 * 1000,
-  frame_ms = 80,
+  frame_ms = 80, -- This might need to be dynamic per animation
   enabled = true,
-  animations = { "bounce", "matrix", "sine" },
+  animations = animations_module.get_all_names(),
   winblend = 0,
 }
 
@@ -21,14 +23,14 @@ local state = {
   tick = 0,
   animation = nil,
   anim_state = nil,
+  grid = nil, -- Add grid to state
+  ns = vim.api.nvim_create_namespace("screensaver"), -- Namespace for highlights
   on_key_ns = vim.api.nvim_create_namespace("screensaver-onkey"),
   augroup = vim.api.nvim_create_augroup("Screensaver", { clear = true }),
   autocmds_set = false,
   launching = false,
   rendering = false,
 }
-
-local animations = {}
 
 local function set_win_option(win, name, value)
   local ok = pcall(vim.api.nvim_set_option_value, name, value, { win = win })
@@ -45,92 +47,10 @@ local function ui_size()
   return ui.width, ui.height
 end
 
-local function blank_lines(width, height)
-  local line = string.rep(" ", width)
-  local lines = {}
-  for _ = 1, height do
-    lines[#lines + 1] = line
-  end
-  return lines
-end
-
-animations.bounce = {
-  init = function(width, height)
-    return {
-      x = math.floor(width / 2),
-      y = math.floor(height / 2),
-      dx = 1,
-      dy = 1,
-      ch = "o",
-    }
-  end,
-  render = function(st, width, height)
-    local lines = blank_lines(width, height)
-    local x = math.max(1, math.min(width, st.x))
-    local y = math.max(1, math.min(height, st.y))
-    local line = lines[y]
-    lines[y] = line:sub(1, x - 1) .. st.ch .. line:sub(x + 1)
-
-    st.x = st.x + st.dx
-    st.y = st.y + st.dy
-    if st.x <= 1 or st.x >= width then
-      st.dx = -st.dx
-    end
-    if st.y <= 1 or st.y >= height then
-      st.dy = -st.dy
-    end
-
-    return lines
-  end,
-}
-
-animations.matrix = {
-  init = function(width, height)
-    local cols = {}
-    for i = 1, width do
-      cols[i] = { y = math.random(height), speed = math.random(1, 3) }
-    end
-    return { cols = cols }
-  end,
-  render = function(st, width, height)
-    local lines = blank_lines(width, height)
-    for x = 1, width do
-      local col = st.cols[x]
-      local y = col.y
-      local line = lines[y]
-      lines[y] = line:sub(1, x - 1) .. string.char(math.random(33, 126)) .. line:sub(x + 1)
-      col.y = col.y + col.speed
-      if col.y > height then
-        col.y = 1
-        col.speed = math.random(1, 3)
-      end
-    end
-    return lines
-  end,
-}
-
-animations.sine = {
-  init = function(width, height)
-    return { phase = 0 }
-  end,
-  render = function(st, width, height)
-    local lines = blank_lines(width, height)
-    local mid = math.floor(height / 2)
-    for x = 1, width do
-      local y = math.floor(mid + math.sin((x / width) * math.pi * 2 + st.phase) * (height / 3))
-      y = math.max(1, math.min(height, y))
-      local line = lines[y]
-      lines[y] = line:sub(1, x - 1) .. "*" .. line:sub(x + 1)
-    end
-    st.phase = st.phase + 0.3
-    return lines
-  end,
-}
-
 local function pick_animation()
   local list = state.config.animations
   local name = list[math.random(1, #list)]
-  return name, animations[name]
+  return name, animations_module.get_animation(name)
 end
 
 local function stop_anim_timer()
@@ -157,29 +77,56 @@ local function render_frame()
     return
   end
 
-  local width = vim.api.nvim_win_get_width(state.win)
-  local height = vim.api.nvim_win_get_height(state.win)
-  if width <= 0 or height <= 0 then
-    return
-  end
-
-  local lines = state.animation.render(state.anim_state, width, height)
-  if not lines or #lines == 0 then
-    lines = { "screensaver active" }
-  end
-
   state.rendering = true
+
+  state.animation.update(state.grid, state.anim_state)
+
+  local lines = {}
+  local highlights = {}
+  
+  local height = #state.grid
+  for i = 1, height do
+    local row = state.grid[i]
+    local chars = {}
+    local row_highlights = {}
+    local col_idx = 0
+    for _, cell in ipairs(row) do
+        table.insert(chars, cell.char)
+        if cell.hl_group and cell.hl_group ~= "" then
+            local len = utils.string_byte_len(cell.char)
+            table.insert(row_highlights, { group = cell.hl_group, start_col = col_idx, end_col = col_idx + len })
+            col_idx = col_idx + len
+        else
+            col_idx = col_idx + utils.string_byte_len(cell.char)
+        end
+    end
+    table.insert(lines, table.concat(chars, ""))
+    table.insert(highlights, row_highlights)
+  end
+
   vim.api.nvim_buf_set_option(state.buf, "modifiable", true)
   vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
   vim.api.nvim_buf_set_option(state.buf, "modifiable", false)
+
+  -- 2. Highlights
+  vim.api.nvim_buf_clear_namespace(state.buf, state.ns, 0, -1)
+  for i, row_hls in ipairs(highlights) do
+      for _, hl in ipairs(row_hls) do
+          vim.api.nvim_buf_add_highlight(state.buf, state.ns, hl.group, i - 1, hl.start_col, hl.end_col)
+      end
+  end
+
   vim.cmd("redraw")
   state.rendering = false
 end
 
 local function start_animation()
   stop_anim_timer()
+  local fps = state.animation.fps or 15
+  local interval = math.floor(1000 / fps)
+  
   state.anim_timer = uv.new_timer()
-  state.anim_timer:start(0, state.config.frame_ms, function()
+  state.anim_timer:start(0, interval, function()
     vim.schedule(render_frame)
   end)
 end
@@ -281,10 +228,13 @@ function M.start()
   state.active = true
   state.last_win = vim.api.nvim_get_current_win()
 
+  -- Capture grid BEFORE creating window, using the current window
+  state.grid = utils.snapshot_window(state.last_win)
+
   local name, anim = pick_animation()
   state.animation = anim
-  local width, height = ui_size()
-  state.anim_state = anim.init(width, height)
+  state.anim_state = anim.init(state.grid)
+  
   state.tick = 0
 
   state.launching = true
@@ -297,9 +247,10 @@ function M.start()
   end
   if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
     vim.api.nvim_buf_set_option(state.buf, "modifiable", true)
-    vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, { "screensaver active" })
+    -- Initial render will populate buffer
     vim.api.nvim_buf_set_option(state.buf, "modifiable", false)
   end
+  
   render_frame()
   start_animation()
   setup_on_key()
@@ -318,15 +269,13 @@ function M.stop()
   clear_on_key()
   stop_anim_timer()
 
-  -- Use vim.schedule to close the window.
-  -- This ensures that other autocommands triggered by the same event
-  -- have a chance to run before the window/buffer is destroyed.
   vim.schedule(function()
     if state.win and vim.api.nvim_win_is_valid(state.win) then
       vim.api.nvim_win_close(state.win, true)
     end
     state.win = nil
     state.buf = nil
+    state.grid = nil
 
     if state.last_win and vim.api.nvim_win_is_valid(state.last_win) then
       pcall(vim.api.nvim_set_current_win, state.last_win)
@@ -387,7 +336,6 @@ local function setup_autocmds()
 
       -- Screensaver rendering modifies buffer (TextChanged).
       if args.buf and args.buf == state.buf then
-
         local event = vim.v.event.event
         if event == "TextChanged" or event == "TextChangedI" or event == "BufEnter" then
            return
@@ -437,6 +385,7 @@ end
 
 function M.setup(opts)
   state.config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), opts or {})
+  
   math.randomseed(os.time())
 
   setup_autocmds()
