@@ -19,7 +19,7 @@ Use your favorite plugin manager.
 
 ```lua
 {
-  "Root-lee/screensaver.nvim",
+  "yourname/screensaver.nvim",
   config = function()
     require("screensaver").setup({
       idle_ms = 60 * 1000, -- Idle time in milliseconds (1 minute)
@@ -39,7 +39,12 @@ The plugin comes with a suite of built-in animations:
 - 🔀 **scramble**: Randomly shuffles characters in your buffer.
 - 🔡 **random_case**: Randomly flips uppercase and lowercase letters.
 - 🎾 **bounce**: A simple bouncing character (classic).
-- 〰️ **sine**: A sine wave animation.
+- ✨ **starfield**: A classic 3D starfield simulation.
+- 🧱 **pipes**: Retro 3D pipes growing across the screen.
+- 🔥 **fire**: A Doom-style fire effect.
+- ❄️ **snow**: Gentle snow falling over your code.
+- 🐠 **aquarium**: Fish swimming across your terminal.
+- 🐘 **zoo**: Various animals wandering around your screen.
 
 ## 🛠️ Configuration
 
@@ -48,14 +53,17 @@ You can customize the screensaver by passing options to the `setup` function:
 ```lua
 require("screensaver").setup({
   -- ⏱️ Time in milliseconds before the screensaver starts
-  idle_ms = 60 * 1000,
-
+  idle_ms = 60 * 1000, 
+  
+  -- 🚀 Automatically start screensaver after idle time (set to false for manual only)
+  auto_start = true,
+  
   -- 🎞️ Refresh rate for animations (lower = faster/smoother)
   frame_ms = 80,
-
+  
   -- ✅ Enable/Disable the plugin globally
   enabled = true,
-
+  
   -- 🎬 List of enabled animations (defaults to all available)
   animations = {
     "matrix",
@@ -66,9 +74,14 @@ require("screensaver").setup({
     "scramble",
     "random_case",
     "bounce",
-    "sine",
+    "starfield",
+    "pipes",
+    "fire",
+    "snow",
+    "aquarium",
+    "zoo",
   },
-
+  
   -- 👻 Window transparency (0-100)
   winblend = 0,
 })
@@ -78,7 +91,7 @@ require("screensaver").setup({
 
 | Command | Description |
 |---------|-------------|
-| `:ScreensaverStart` | Manually trigger the screensaver immediately |
+| `:ScreensaverStart [anim]` | Start screensaver immediately. Optional: specify animation name (e.g. `:ScreensaverStart rain`) |
 | `:ScreensaverStop` | Stop the screensaver |
 | `:ScreensaverToggle` | Toggle the screensaver on/off |
 | `:ScreensaverDisable` | Completely disable the plugin (stops idle timer) |
