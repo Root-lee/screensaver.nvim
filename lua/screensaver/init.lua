@@ -232,7 +232,6 @@ local function setup_on_key()
 			"\\",
 			"|",
 			";",
-			":",
 			"'",
 			'"',
 			",",
@@ -256,12 +255,13 @@ local function setup_on_key()
 			"<Insert>",
 			"<Delete>",
 			"<C-w>",
+			"<Space>",
 		}
 
 		for _, k in ipairs(keys) do
-            if k ~= state.config.exit_key then
-			    pcall(vim.keymap.set, "n", k, nop, { buffer = state.buf, nowait = true, silent = true })
-            end
+			if k ~= state.config.exit_key then
+				pcall(vim.keymap.set, "n", k, nop, { buffer = state.buf, nowait = true, silent = true })
+			end
 		end
 	end
 end
