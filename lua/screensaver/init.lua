@@ -463,12 +463,12 @@ local function setup_autocmds()
 				return
 			end
 
-            if state.active and args.event == "WinEnter" then
-                if state.win and not vim.api.nvim_win_is_valid(state.win) then
-                    M.stop()
-                    return
-                end
-            end
+			if state.active and args.event == "WinEnter" then
+				if state.win and not vim.api.nvim_win_is_valid(state.win) then
+					M.stop()
+					return
+				end
+			end
 
 			if args.event == "CmdlineEnter" then
 				M._on_activity()

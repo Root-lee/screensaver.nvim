@@ -124,16 +124,21 @@ local MatrixLine = {
 	end,
 }
 
-local function create_matrix_line(line_data)
-	local characters = ""
-	for i = 1, #line_data do
-		characters = characters .. line_data[i].char
-	end
-	characters = string.gsub(characters, "^%s+", "")
-	characters = string.gsub(characters, "%s+$", "")
-	characters = string.gsub(characters, utils.nbsp, "")
-	return characters
-end
+		local function create_matrix_line(line_data)
+			local characters = ""
+			for i = 1, #line_data do
+				local char = line_data[i].char
+				if vim.fn.strdisplaywidth(char) > 1 then
+					char = " "
+				end
+				characters = characters .. char
+			end
+			characters = string.gsub(characters, "^%s+", "")
+			characters = string.gsub(characters, "%s+$", "")
+			characters = string.gsub(characters, utils.nbsp, "")
+			return characters
+		end
+
 
 animations.matrix = {
 	fps = 15,
