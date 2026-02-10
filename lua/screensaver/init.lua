@@ -10,6 +10,7 @@ local default_config = {
 	enabled = true,
 	auto_start = true,
 	disable_on_focus_lost = true,
+	exit_key = "<Esc>",
 	animations = animations_module.get_all_names(),
 	winblend = 0,
 }
@@ -139,7 +140,7 @@ end
 
 local function setup_on_key()
 	if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
-		vim.keymap.set("n", " ", function()
+		vim.keymap.set("n", state.config.exit_key, function()
 			M.stop()
 			M._on_activity()
 		end, { buffer = state.buf, nowait = true, silent = true })
