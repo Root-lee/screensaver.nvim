@@ -123,13 +123,10 @@ end
 local function start_animation()
   stop_anim_timer()
   
-  local frame_ms = state.config.frame_ms
-  if state.animation.fps then
-    frame_ms = math.floor(1000 / state.animation.fps)
-  end
+  local interval = state.config.frame_ms
   
   state.anim_timer = uv.new_timer()
-  state.anim_timer:start(0, frame_ms, function()
+  state.anim_timer:start(0, interval, function()
     vim.schedule(render_frame)
   end)
 end
