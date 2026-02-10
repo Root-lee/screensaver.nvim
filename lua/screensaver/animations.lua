@@ -5,16 +5,22 @@ vim.api.nvim_set_hl(0, "Matrix", { fg = "#009900" })
 vim.api.nvim_set_hl(0, "MatrixEnd", { fg = "#00FF00" })
 vim.api.nvim_set_hl(0, "MatrixRnd", { fg = "#333333" })
 
-local animations = {}
+vim.api.nvim_set_hl(0, "ScreensaverPipe1", { fg = "#FF0000" })
+vim.api.nvim_set_hl(0, "ScreensaverPipe2", { fg = "#00FF00" })
+vim.api.nvim_set_hl(0, "ScreensaverPipe3", { fg = "#0000FF" })
+vim.api.nvim_set_hl(0, "ScreensaverPipe4", { fg = "#FFFF00" })
+vim.api.nvim_set_hl(0, "ScreensaverPipe5", { fg = "#00FFFF" })
+vim.api.nvim_set_hl(0, "ScreensaverPipe6", { fg = "#FF00FF" })
 
-local function blank_lines(width, height)
-  local line = string.rep(" ", width)
-  local lines = {}
-  for _ = 1, height do
-    lines[#lines + 1] = line
-  end
-  return lines
-end
+vim.api.nvim_set_hl(0, "ScreensaverFire1", { fg = "#550000" }) 
+vim.api.nvim_set_hl(0, "ScreensaverFire2", { fg = "#AA0000" })
+vim.api.nvim_set_hl(0, "ScreensaverFire3", { fg = "#FF0000" })
+vim.api.nvim_set_hl(0, "ScreensaverFire4", { fg = "#FF5500" })
+vim.api.nvim_set_hl(0, "ScreensaverFire5", { fg = "#FFAA00" })
+vim.api.nvim_set_hl(0, "ScreensaverFire6", { fg = "#FFFF00" }) 
+vim.api.nvim_set_hl(0, "ScreensaverFire7", { fg = "#FFFFFF" }) 
+
+local animations = {}
 
 local function blank_grid(width, height)
   local grid = {}
@@ -406,6 +412,176 @@ animations.game_of_life = {
         end
       end
     end
+    return true
+  end
+}
+
+animations.starfield = {
+  fps = 20,
+  init = function(grid)
+    local width = #grid[1]
+    local height = #grid
+    local stars = {}
+    local num_stars = math.floor(width * height / 30)
+    for _ = 1, num_stars do
+      table.insert(stars, {
+        x = math.random(-width, width),
+        y = math.random(-height, height),
+        z = math.random(1, width),
+      })
+    end
+    return { stars = stars, width = width, height = height, cx = math.floor(width/2), cy = math.floor(height/2) }
+  end,
+  update = function(grid, state)
+    for r = 1, state.height do
+      for c = 1, state.width do
+        grid[r][c] = { char = " ", hl_group = "" }
+      end
+    end
+
+    for _, star in ipairs(state.stars) do
+      star.z = star.z - 1
+      if star.z <= 0 then
+        star.x = math.random(-state.width, state.width)
+        star.y = math.random(-state.height, state.height)
+        star.z = state.width
+      end
+
+      local sx = math.floor((star.x / star.z) * state.width/2 + state.cx)
+      local sy = math.floor((star.y / star.z) * state.height/2 + state.cy)
+
+      if sx >= 1 and sx <= state.width and sy >= 1 and sy <= state.height then
+        local char = "."
+        if star.z < state.width / 4 then char = "@"
+        elseif star.z < state.width / 2 then char = "*"
+        elseif star.z < state.width / 1.5 then char = "+"
+        end
+        grid[sy][sx] = { char = char, hl_group = "Screensaver" }
+      end
+    end
+    return true
+  end
+}
+
+animations.pipes = {
+  fps = 10,
+  init = function(grid)
+    local width = #grid[1]
+    local height = #grid
+    local pipes = {}
+    for i = 1, 3 do
+      table.insert(pipes, {
+        x = math.random(1, width),
+        y = math.random(1, height),
+        dx = 0,
+        dy = 0,
+        hl = "ScreensaverPipe" .. math.random(1, 6)
+      })
+    end
+    return { pipes = pipes, width = width, height = height, clear_tick = 0 }
+  end,
+  update = function(grid, state)
+    state.clear_tick = state.clear_tick + 1
+    if state.clear_tick > 200 then
+      for r = 1, state.height do
+        for c = 1, state.width do
+          grid[r][c] = { char = " ", hl_group = "" }
+        end
+      end
+      state.clear_tick = 0
+    end
+
+    for _, pipe in ipairs(state.pipes) do
+      local old_x, old_y = pipe.x, pipe.y
+      local old_dx, old_dy = pipe.dx, pipe.dy
+
+      if math.random() < 0.2 or (pipe.dx == 0 and pipe.dy == 0) then
+        local dirs = {{0,1}, {0,-1}, {1,0}, {-1,0}}
+        local d = dirs[math.random(1, 4)]
+        if d[1] ~= -pipe.dx or d[2] ~= -pipe.dy then
+          pipe.dx = d[1]
+          pipe.dy = d[2]
+        end
+      end
+
+      pipe.x = pipe.x + pipe.dx
+      pipe.y = pipe.y + pipe.dy
+
+      if pipe.x < 1 then pipe.x = state.width end
+      if pipe.x > state.width then pipe.x = 1 end
+      if pipe.y < 1 then pipe.y = state.height end
+      if pipe.y > state.height then pipe.y = 1 end
+
+      local char = "│"
+      if pipe.dx ~= 0 then char = "─" end
+      
+      if old_dx ~= pipe.dx or old_dy ~= pipe.dy then
+        if (old_dy == 1 and pipe.dx == 1) or (old_dx == -1 and pipe.dy == -1) then char = "┌"
+        elseif (old_dy == 1 and pipe.dx == -1) or (old_dx == 1 and pipe.dy == -1) then char = "┐"
+        elseif (old_dy == -1 and pipe.dx == 1) or (old_dx == -1 and pipe.dy == 1) then char = "└"
+        elseif (old_dy == -1 and pipe.dx == -1) or (old_dx == 1 and pipe.dy == 1) then char = "┘"
+        else char = "+" end
+      end
+
+      if old_dx == 0 and old_dy == 0 then
+        if pipe.dx ~= 0 then char = "─" else char = "│" end
+      end
+
+      grid[pipe.y][pipe.x] = { char = char, hl_group = pipe.hl }
+    end
+    return true
+  end
+}
+
+animations.fire = {
+  fps = 15,
+  init = function(grid)
+    local width = #grid[1]
+    local height = #grid
+    local heat = {}
+    for r = 1, height do
+      heat[r] = {}
+      for c = 1, width do
+        heat[r][c] = 0
+      end
+    end
+    return { heat = heat, width = width, height = height }
+  end,
+  update = function(grid, state)
+    local chars = { " ", ".", ",", "-", "~", ":", ";", "=", "!", "*", "#", "$", "@" }
+    local hls = { "", "ScreensaverFire1", "ScreensaverFire1", "ScreensaverFire2", "ScreensaverFire2", "ScreensaverFire3", "ScreensaverFire3", "ScreensaverFire4", "ScreensaverFire4", "ScreensaverFire5", "ScreensaverFire5", "ScreensaverFire6", "ScreensaverFire7" }
+    
+    for c = 1, state.width do
+      state.heat[state.height][c] = math.random(0, #chars * 3) 
+    end
+
+    for r = 1, state.height - 1 do
+      for c = 1, state.width do
+        local sum = 0
+        local count = 0
+        if state.heat[r+1] then
+          sum = sum + state.heat[r+1][c]
+          count = count + 1
+          if c > 1 then sum = sum + state.heat[r+1][c-1]; count = count + 1 end
+          if c < state.width then sum = sum + state.heat[r+1][c+1]; count = count + 1 end
+        end
+        
+        state.heat[r][c] = math.max(0, math.floor(sum / count) - math.random(0, 1))
+        
+        local val = state.heat[r][c]
+        local idx = math.min(#chars, math.max(1, math.floor(val)))
+        
+        local hl = hls[idx]
+        if idx == 1 then hl = "" end
+        
+        grid[r][c] = { char = chars[idx], hl_group = hl }
+      end
+    end
+    
+    for c = 1, state.width do
+       grid[state.height][c] = { char = "@", hl_group = "ScreensaverFire7" }
+    end
+
     return true
   end
 }
