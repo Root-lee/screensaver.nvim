@@ -109,6 +109,27 @@ M.string_sub = function(str, i, j)
   return str:sub(s + 1, e)
 end
 
+-- Helper to get highlight group at position
+local function get_highlight_at(buf, row, col)
+  if vim.treesitter.highlighter.active[buf] then
+    local captures = vim.treesitter.get_captures_at_pos(buf, row, col)
+    if captures and #captures > 0 then
+      local capture = captures[#captures]
+      if capture and capture.capture then
+         return "@" .. capture.capture
+      end
+    end
+  end
+
+  local syn_id = vim.fn.synID(row + 1, col + 1, 1)
+  if syn_id ~= 0 then
+    syn_id = vim.fn.synIDtrans(syn_id)
+    return vim.fn.synIDattr(syn_id, "name")
+  end
+  
+  return ""
+end
+
 M.snapshot_window = function(win)
   local buf = vim.api.nvim_win_get_buf(win)
   
@@ -127,11 +148,22 @@ M.snapshot_window = function(win)
   for i = 1, height do
     local line_str = lines[i] or ""
     local row = {}
+    local buf_row = topline + i - 1
     
     for j = 1, width do
         local char = M.string_sub(line_str, j, j)
+        local hl = ""
+        
+        if char ~= "" and char ~= " " then
+           local char_idx = j - 1 -- 0-based char index
+           if char_idx < vim.str_utfindex(line_str) then
+             local byte_col = vim.str_byteindex(line_str, char_idx)
+             hl = get_highlight_at(buf, buf_row, byte_col)
+           end
+        end
+        
         if char == "" then char = " " end
-        table.insert(row, { char = char, hl_group = "" })
+        table.insert(row, { char = char, hl_group = hl })
     end
     table.insert(grid, row)
   end
