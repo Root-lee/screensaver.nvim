@@ -20,6 +20,15 @@ vim.api.nvim_set_hl(0, "ScreensaverFire5", { fg = "#FFAA00" })
 vim.api.nvim_set_hl(0, "ScreensaverFire6", { fg = "#FFFF00" }) 
 vim.api.nvim_set_hl(0, "ScreensaverFire7", { fg = "#FFFFFF" }) 
 
+-- Plasma colors
+vim.api.nvim_set_hl(0, "ScreensaverPlasma1", { fg = "#9400D3" })
+vim.api.nvim_set_hl(0, "ScreensaverPlasma2", { fg = "#4B0082" })
+vim.api.nvim_set_hl(0, "ScreensaverPlasma3", { fg = "#0000FF" })
+vim.api.nvim_set_hl(0, "ScreensaverPlasma4", { fg = "#00FF00" })
+vim.api.nvim_set_hl(0, "ScreensaverPlasma5", { fg = "#FFFF00" })
+vim.api.nvim_set_hl(0, "ScreensaverPlasma6", { fg = "#FF7F00" })
+vim.api.nvim_set_hl(0, "ScreensaverPlasma7", { fg = "#FF0000" })
+
 local animations = {}
 
 local function blank_grid(width, height)
@@ -32,6 +41,21 @@ local function blank_grid(width, height)
     table.insert(grid, row)
   end
   return grid
+end
+
+local function put_char(grid, x, y, char, hl)
+  if not grid[y] or not grid[y][x] then return end
+  local width = vim.fn.strdisplaywidth(char)
+  
+  grid[y][x] = { char = char, hl_group = hl }
+  
+  if width > 1 then
+    for i = 1, width - 1 do
+      if grid[y][x + i] then
+        grid[y][x + i] = { char = "", hl_group = "" } -- Mark as consumed
+      end
+    end
+  end
 end
 
 animations.bounce = {
@@ -582,6 +606,152 @@ animations.fire = {
        grid[state.height][c] = { char = "@", hl_group = "ScreensaverFire7" }
     end
 
+    return true
+  end
+}
+
+animations.snow = {
+  fps = 10,
+  init = function(grid)
+    local width = #grid[1]
+    local height = #grid
+    local flakes = {}
+    return { flakes = flakes, width = width, height = height, step = 0 }
+  end,
+  update = function(grid, state)
+    state.step = state.step + 1
+    
+    -- Spawn new flakes
+    if math.random() < 0.3 then
+      table.insert(state.flakes, {
+        x = math.random(1, state.width),
+        y = 0,
+        sway = math.random() * math.pi * 2,
+        speed = math.random() * 0.5 + 0.5,
+        char = ({"❄", "❅", "❆", "•"})[math.random(1, 4)]
+      })
+    end
+
+    if not state.bg then
+      state.bg = vim.deepcopy(grid)
+    end
+    
+    for r = 1, state.height do
+      for c = 1, state.width do
+        grid[r][c] = vim.deepcopy(state.bg[r][c])
+      end
+    end
+
+    local active_flakes = {}
+    for _, f in ipairs(state.flakes) do
+      f.y = f.y + f.speed
+      f.sway = f.sway + 0.1
+      
+      local draw_x = math.floor(f.x + math.sin(f.sway) * 2)
+      local draw_y = math.floor(f.y)
+      
+      if draw_y <= state.height then
+        if draw_y >= 1 and draw_x >= 1 and draw_x <= state.width then
+           put_char(grid, draw_x, draw_y, f.char, "Screensaver")
+        end
+        table.insert(active_flakes, f)
+      end
+    end
+    state.flakes = active_flakes
+    
+    return true
+  end
+}
+
+animations.aquarium = {
+  fps = 8,
+  init = function(grid)
+    local width = #grid[1]
+    local height = #grid
+    local fish = {}
+    local bubbles = {}
+    for i=1, 3 do
+      table.insert(fish, {
+        x = math.random(1, width),
+        y = math.random(1, height),
+        dx = (math.random(0, 1) * 2) - 1, -- -1 or 1
+        type = math.random(1, 4)
+      })
+    end
+    return { fish = fish, bubbles = bubbles, width = width, height = height }
+  end,
+  update = function(grid, state)
+    if not state.bg then state.bg = vim.deepcopy(grid) end
+    
+    -- Restore bg
+    for r = 1, state.height do
+      for c = 1, state.width do
+        grid[r][c] = vim.deepcopy(state.bg[r][c])
+      end
+    end
+    
+    local fish_chars = {"🐠", "🐟", "🐡", "🦈"}
+    
+    for _, f in ipairs(state.fish) do
+      f.x = f.x + f.dx
+      if f.x > state.width + 2 then f.x = -2 end
+      if f.x < -2 then f.x = state.width + 2 end
+      
+      if math.random() < 0.05 then
+        table.insert(state.bubbles, { x = math.floor(f.x), y = f.y, char = "o" })
+      end
+      
+      local char = fish_chars[f.type]
+      
+      local draw_x = math.floor(f.x)
+      if draw_x >= 1 and draw_x <= state.width then
+        put_char(grid, draw_x, f.y, char, "Screensaver")
+      end
+    end
+    
+    local active_bubbles = {}
+    for _, b in ipairs(state.bubbles) do
+      b.y = b.y - 0.5
+      if b.y > 0 then
+        local bx = math.floor(b.x + math.sin(b.y))
+        local by = math.floor(b.y)
+        if by >= 1 and by <= state.height and bx >= 1 and bx <= state.width then
+           put_char(grid, bx, by, "🫧", "Screensaver")
+        end
+        table.insert(active_bubbles, b)
+      end
+    end
+    state.bubbles = active_bubbles
+    
+    return true
+  end
+}
+
+animations.plasma = {
+  fps = 10,
+  init = function(grid)
+    local width = #grid[1]
+    local height = #grid
+    return { width = width, height = height, time = 0 }
+  end,
+  update = function(grid, state)
+    state.time = state.time + 0.1
+    local hls = { "ScreensaverPlasma1", "ScreensaverPlasma2", "ScreensaverPlasma3", "ScreensaverPlasma4", "ScreensaverPlasma5", "ScreensaverPlasma6", "ScreensaverPlasma7" }
+    
+    for r = 1, state.height do
+      for c = 1, state.width do
+        local v = 0
+        v = v + math.sin((c / 4.0) + state.time)
+        v = v + math.sin((r / 4.0) + state.time)
+        v = v + math.sin((c / 4.0 + r / 4.0) + state.time)
+        v = v + math.sin(math.sqrt(c * c + r * r) / 8.0)
+        
+        local idx = math.floor((v + 4) / 8 * #hls) + 1
+        idx = math.max(1, math.min(#hls, idx))
+        
+        grid[r][c] = { char = "█", hl_group = hls[idx] }
+      end
+    end
     return true
   end
 }
