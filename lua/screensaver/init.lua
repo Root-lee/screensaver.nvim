@@ -259,7 +259,9 @@ local function setup_on_key()
 		}
 
 		for _, k in ipairs(keys) do
-			pcall(vim.keymap.set, "n", k, nop, { buffer = state.buf, nowait = true, silent = true })
+            if k ~= state.config.exit_key then
+			    pcall(vim.keymap.set, "n", k, nop, { buffer = state.buf, nowait = true, silent = true })
+            end
 		end
 	end
 end
