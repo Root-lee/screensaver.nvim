@@ -69,9 +69,6 @@ require("screensaver").setup({
   -- 🎞️ Refresh rate for animations (lower = faster/smoother)
   frame_ms = 80,
   
-  -- ✅ Enable/Disable the plugin globally
-  enabled = true,
-  
   -- 🎬 List of enabled animations (defaults to all available)
   animations = {
     "matrix",
@@ -102,7 +99,6 @@ require("screensaver").setup({
 | `:ScreensaverStart [anim]` | Start screensaver immediately. Optional: specify animation name (e.g. `:ScreensaverStart rain`) |
 | `:ScreensaverStop` | Stop the screensaver |
 | `:ScreensaverToggle` | Toggle the screensaver on/off |
-| `:ScreensaverDisable` | Completely disable the plugin (stops idle timer) |
 
 ## 📝 Notes
 

@@ -19,7 +19,3 @@ end, {})
 vim.api.nvim_create_user_command("ScreensaverToggle", function()
 	ss.toggle()
 end, {})
-
-vim.api.nvim_create_user_command("ScreensaverDisable", function()
-	ss.disable()
-end, {})

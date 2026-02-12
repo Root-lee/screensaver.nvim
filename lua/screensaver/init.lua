@@ -7,7 +7,6 @@ local uv = vim.loop
 local default_config = {
 	idle_ms = 60 * 1000,
 	frame_ms = 80,
-	enabled = true,
 	auto_start = true,
 	disable_on_focus_lost = true,
 	exit_key = "<Esc>",
@@ -396,9 +395,6 @@ function M.stop()
 end
 
 function M._on_activity()
-	if not state.config.enabled then
-		return
-	end
 	if state.active then
 		return
 	end
@@ -531,11 +527,7 @@ function M.setup(opts)
 
 	setup_autocmds()
 
-	if state.config.enabled then
-		M._on_activity()
-	else
-		stop_idle_timer()
-	end
+	M._on_activity()
 end
 
 function M.toggle()
@@ -544,12 +536,6 @@ function M.toggle()
 	else
 		M.start()
 	end
-end
-
-function M.disable()
-	state.config.enabled = false
-	stop_idle_timer()
-	M.stop()
 end
 
 return M
