@@ -1,21 +1,21 @@
 local ok, ss = pcall(require, "screensaver")
 if not ok then
-	return
+  return
 end
 
 if not ss._loaded then
-	ss._loaded = true
-	ss.setup()
+  ss._loaded = true
+  ss.setup()
 end
 
 vim.api.nvim_create_user_command("ScreensaverStart", function(opts)
-	ss.start(opts.args ~= "" and opts.args or nil)
+  ss.start(opts.args ~= "" and opts.args or nil)
 end, { nargs = "?" })
 
 vim.api.nvim_create_user_command("ScreensaverStop", function()
-	ss.stop()
+  ss.stop()
 end, {})
 
 vim.api.nvim_create_user_command("ScreensaverToggle", function()
-	ss.toggle()
+  ss.toggle()
 end, {})
