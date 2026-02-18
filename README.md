@@ -8,6 +8,7 @@ When you stay idle for 60 seconds (default), this plugin activates a screensaver
 
 - 🕒 **Idle Detection**: Automatically starts after a configurable period of inactivity.
 - 🎨 **Rich Animations**: Includes a variety of effects like Matrix rain, Game of Life, sliding text, and more!
+- 🔧 **Custom Commands**: Support for any terminal-based ASCII art (cmatrix, asciiquarium, nyancat, etc.)
 - 🔒 **Safe Mode**: While active, your buffer is protected. Only pressing **Space** (configurable) exits the screensaver.
 - 🚀 **Interactive**: Many animations (like `game_of_life`, `scramble`) play with your existing code content!
 - ⏸️ **Focus Aware**: Pauses auto-start when Neovim loses focus (great for tmux users!).
@@ -44,8 +45,19 @@ The plugin comes with a suite of built-in animations:
 - 🧱 **pipes**: Retro 3D pipes growing across the screen.
 - 🔥 **fire**: A Doom-style fire effect.
 - ❄️ **snow**: Gentle snow falling over your code.
-- 🐠 **aquarium**: Fish swimming across your terminal.
 - 🐘 **zoo**: Various animals wandering around your screen.
+
+### Custom Terminal Commands 🖥️
+
+You can also use any terminal-based ASCII art program as a screensaver! Some popular options:
+
+- **asciiquarium**: An aquarium ASCII art animation
+- **cmatrix**: Matrix-style digital rain
+- **nyancat**: The famous rainbow cat animation
+- **aafire**: Fire effect using ASCII art
+- **sl**: Steam locomotive animation
+
+See the [Custom Commands](#-custom-commands) section below for configuration details.
 
 ## 🛠️ Configuration
 
@@ -54,21 +66,21 @@ You can customize the screensaver by passing options to the `setup` function:
 ```lua
 require("screensaver").setup({
   -- ⏱️ Time in milliseconds before the screensaver starts
-  idle_ms = 60 * 1000, 
-  
+  idle_ms = 60 * 1000,
+
   -- 🚀 Automatically start screensaver after idle time (set to false for manual only)
   auto_start = true,
-  
+
   -- 🛡️ Disable auto-start when Neovim loses focus (e.g. switching tmux windows)
   -- Requires `set -g focus-events on` in your tmux.conf
   disable_on_focus_lost = true,
-  
+
   -- ⌨️ Key to exit the screensaver
   exit_key = "<Esc>",
-  
+
   -- 🎞️ Refresh rate for animations (lower = faster/smoother)
   frame_ms = 80,
-  
+
   -- 🎬 List of enabled animations (defaults to all available)
   animations = {
     "matrix",
@@ -83,13 +95,57 @@ require("screensaver").setup({
     "pipes",
     "fire",
     "snow",
-    "aquarium",
     "zoo",
   },
-  
+
   -- 👻 Window transparency (0-100)
   winblend = 0,
 })
+```
+
+### 🖥️ Custom Commands
+
+You can add custom terminal-based ASCII art animations using the `custom_commands` option:
+
+```lua
+require("screensaver").setup({
+  custom_commands = {
+    -- Aquarium (requires asciiquarium installed)
+    aquarium = "asciiquarium -t",
+
+    -- Matrix-style digital rain (requires cmatrix installed)
+    cmatrix = "cmatrix -s",
+
+    -- Rainbow cat animation (requires nyancat installed)
+    nyancat = "nyancat",
+
+    -- Fire effect (requires aafire installed)
+    -- Note: aafire exits after one run, so we use a loop
+    aafire = "while true; do aafire; done",
+
+    -- Steam locomotive (requires sl installed)
+    -- Note: sl exits after one run, so we use a loop
+    sl = "while true; do sl -aF; done",
+
+    -- Custom figlet animation
+    figlet = "watch -n 1 'echo Neovim | figlet | lolcat'",
+  },
+
+  -- Add custom command names to animations list to include them in rotation
+  animations = {
+    "aquarium",
+    "cmatrix",
+    "matrix",
+    "rain",
+    -- ... other animations
+  },
+})
+```
+
+**Tips:**
+- Some commands like `sl` and `aafire` exit after running once. Wrap them in `while true; do <command>; done` to loop continuously.
+- Make sure the required programs are installed on your system and available in your PATH.
+- Test commands in your terminal before adding them to the configuration.
 ```
 
 ## ⌨️ Commands
@@ -99,6 +155,20 @@ require("screensaver").setup({
 | `:ScreensaverStart [anim]` | Start screensaver immediately. Optional: specify animation name (e.g. `:ScreensaverStart rain`) |
 | `:ScreensaverStop` | Stop the screensaver |
 | `:ScreensaverToggle` | Toggle the screensaver on/off |
+
+You can also use the Lua API directly:
+
+```lua
+-- Start a specific animation
+:lua require("screensaver").start("matrix")
+:lua require("screensaver").start("aquarium")  -- custom command
+
+-- Stop the screensaver
+:lua require("screensaver").stop()
+
+-- Toggle on/off
+:lua require("screensaver").toggle()
+```
 
 ## 📝 Notes
 

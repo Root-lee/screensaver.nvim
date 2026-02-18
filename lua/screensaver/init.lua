@@ -12,6 +12,11 @@ local default_config = {
   exit_key = "<Esc>",
   animations = animations_module.get_all_names(),
   winblend = 0,
+  -- Custom terminal commands for ASCII art screensavers
+  -- Example:
+  custom_commands = {
+    -- asciiquarium = "asciiquarium -t",
+  },
 }
 
 local state = {
@@ -50,12 +55,57 @@ local function ui_size()
 end
 
 local function pick_animation(name)
+  -- First check if it's a custom command
+  if name and state.config.custom_commands[name] then
+    return name, {
+      fps = 0,
+      terminal_cmd = state.config.custom_commands[name],
+      is_custom = true,
+      init = function(grid)
+        return { terminal_started = false }
+      end,
+      update = function(grid, state)
+        return false
+      end,
+    }
+  end
+
+  -- Then check built-in animations
   if name and animations_module.get_animation(name) then
     return name, animations_module.get_animation(name)
   end
 
+  -- If a specific name was requested but not found, return nil
+  if name then
+    return nil, nil
+  end
+
+  -- Pick random from available animations (including custom ones)
   local list = state.config.animations
-  local picked = list[math.random(1, #list)]
+  local custom_names = vim.tbl_keys(state.config.custom_commands)
+  local all_names = vim.list_extend(vim.deepcopy(list), custom_names)
+
+  if #all_names == 0 then
+    return nil, nil
+  end
+
+  local picked = all_names[math.random(1, #all_names)]
+
+  -- Check if it's a custom command
+  if state.config.custom_commands[picked] then
+    return picked, {
+      fps = 0,
+      terminal_cmd = state.config.custom_commands[picked],
+      is_custom = true,
+      init = function(grid)
+        return { terminal_started = false }
+      end,
+      update = function(grid, state)
+        return false
+      end,
+    }
+  end
+
   return picked, animations_module.get_animation(picked)
 end
 
@@ -84,6 +134,13 @@ local function render_frame()
   end
 
   state.rendering = true
+
+  -- Check if this is a terminal-based animation
+  if state.animation.fps == 0 and state.animation.terminal_cmd then
+    -- Terminal-based animation, don't use grid rendering
+    state.rendering = false
+    return
+  end
 
   state.animation.update(state.grid, state.anim_state)
 
@@ -128,6 +185,17 @@ end
 
 local function start_animation()
   stop_anim_timer()
+
+  -- Check if this is a terminal-based animation
+  if state.animation.fps == 0 and state.animation.terminal_cmd then
+    -- Terminal-based animation
+    if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+      vim.api.nvim_buf_call(state.buf, function()
+        vim.fn.termopen(state.animation.terminal_cmd)
+      end)
+    end
+    return
+  end
 
   local interval = state.config.frame_ms
 
@@ -270,16 +338,24 @@ local function clear_on_key()
 end
 
 local function create_window()
-  local ok_buf, buf = pcall(vim.api.nvim_create_buf, false, true)
+  -- Check if this is a terminal-based animation (built-in or custom)
+  local is_terminal = state.animation and state.animation.fps == 0 and state.animation.terminal_cmd
+
+  local ok_buf, buf = pcall(vim.api.nvim_create_buf, is_terminal, true)
   if not ok_buf or not buf or buf == 0 then
     return false
   end
   state.buf = buf
-  vim.api.nvim_buf_set_option(state.buf, "buftype", "nofile")
+  -- Only set buftype for non-terminal buffers (terminal buftype is set by termopen)
+  if not is_terminal then
+    vim.api.nvim_buf_set_option(state.buf, "buftype", "nofile")
+  end
   vim.api.nvim_buf_set_option(state.buf, "bufhidden", "wipe")
   vim.api.nvim_buf_set_option(state.buf, "swapfile", false)
-  vim.api.nvim_buf_set_option(state.buf, "modifiable", false)
-  vim.api.nvim_buf_set_option(state.buf, "filetype", "screensaver")
+  if not is_terminal then
+    vim.api.nvim_buf_set_option(state.buf, "modifiable", false)
+  end
+  vim.api.nvim_buf_set_option(state.buf, "filetype", is_terminal and "screensaver-terminal" or "screensaver")
 
   local width, height = ui_size()
   local ok_win, win = pcall(vim.api.nvim_open_win, state.buf, true, {
@@ -331,16 +407,36 @@ function M.start(anim_name)
     return
   end
 
+  -- Pick animation first to determine if we need to capture grid
+  local name, anim = pick_animation(anim_name)
+  if not anim then
+    vim.notify("screensaver.nvim: No animation available. Please configure animations.", vim.log.levels.ERROR)
+    return
+  end
+
   ensure_highlight()
   state.active = true
   state.last_win = vim.api.nvim_get_current_win()
 
-  -- Capture grid BEFORE creating window, using the current window
-  state.grid = utils.snapshot_window(state.last_win)
-
-  local name, anim = pick_animation(anim_name)
   state.animation = anim
-  state.anim_state = anim.init(state.grid)
+
+  -- Only capture grid for non-terminal animations
+  if not (anim.fps == 0 and anim.terminal_cmd) then
+    state.grid = utils.snapshot_window(state.last_win)
+    state.anim_state = anim.init(state.grid)
+  else
+    -- Create a minimal grid for terminal animations (not used for rendering)
+    local width, height = ui_size()
+    state.grid = {}
+    for _ = 1, height do
+      local row = {}
+      for _ = 1, width do
+        table.insert(row, { char = " ", hl_group = "" })
+      end
+      table.insert(state.grid, row)
+    end
+    state.anim_state = anim.init(state.grid)
+  end
 
   state.tick = 0
 
