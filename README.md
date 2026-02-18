@@ -78,9 +78,6 @@ require("screensaver").setup({
   -- ⌨️ Key to exit the screensaver
   exit_key = "<Esc>",
 
-  -- 🎞️ Refresh rate for animations (lower = faster/smoother)
-  frame_ms = 80,
-
   -- 🎬 List of enabled animations (defaults to all available)
   animations = {
     "matrix",

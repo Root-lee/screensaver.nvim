@@ -6,7 +6,6 @@ local uv = vim.loop
 
 local default_config = {
   idle_ms = 60 * 1000,
-  frame_ms = 80,
   auto_start = true,
   disable_on_focus_lost = true,
   exit_key = "<Esc>",
@@ -197,7 +196,8 @@ local function start_animation()
     return
   end
 
-  local interval = state.config.frame_ms
+  -- Calculate interval from animation's fps
+  local interval = math.floor(1000 / state.animation.fps)
 
   state.anim_timer = uv.new_timer()
   state.anim_timer:start(0, interval, function()

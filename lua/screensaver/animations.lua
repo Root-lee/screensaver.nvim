@@ -283,7 +283,54 @@ animations.random_case = {
 animations.rain = {
   fps = 50,
   init = function(grid)
-    return { frame = 1, width = #grid[1], height = #grid, side_noise = true, disperse_rate = 3 }
+    -- Remove all empty/whitespace lines before starting
+    local height = #grid
+
+    -- Function to check if a row contains only whitespace
+    local function is_row_empty(row)
+      if not row then
+        return true
+      end
+      for _, cell in ipairs(row) do
+        if cell.char ~= " " and cell.char ~= utils.nbsp and cell.char ~= "\t" then
+          return false
+        end
+      end
+      return true
+    end
+
+    -- Collect all non-empty rows
+    local non_empty_rows = {}
+    for i = 1, height do
+      if not is_row_empty(grid[i]) then
+        table.insert(non_empty_rows, grid[i])
+      end
+    end
+
+    -- Clear the original grid completely
+    for i = 1, #grid do
+      grid[i] = nil
+    end
+
+    -- Refill grid with non-empty rows
+    for i, row in ipairs(non_empty_rows) do
+      grid[i] = row
+    end
+
+    -- If no non-empty rows, add a single row with spaces
+    if #non_empty_rows == 0 then
+      local width = 80
+      if height > 0 and grid[0] then
+        width = #grid[0]
+      end
+      local empty_row = {}
+      for _ = 1, width do
+        table.insert(empty_row, { char = " ", hl_group = "" })
+      end
+      grid[1] = empty_row
+    end
+
+    return { frame = 1, width = #grid[1] or 80, height = #grid, side_noise = true, disperse_rate = 3 }
   end,
   update = function(grid, state)
     state.frame = state.frame + 1
