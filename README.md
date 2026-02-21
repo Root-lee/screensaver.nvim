@@ -4,6 +4,10 @@
 
 When you stay idle for 60 seconds (default), this plugin activates a screensaver mode with random, mesmerizing animations that interact with your code.
 
+## 🎬 Demo
+
+![Screensaver Demo](./assets/demo.gif)
+
 ## 🌟 Features
 
 - 🕒 **Idle Detection**: Automatically starts after a configurable period of inactivity.
