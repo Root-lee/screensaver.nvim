@@ -143,7 +143,6 @@ require("screensaver").setup({
 - Some commands like `sl` and `aafire` exit after running once. Wrap them in `while true; do <command>; done` to loop continuously.
 - Make sure the required programs are installed on your system and available in your PATH.
 - Test commands in your terminal before adding them to the configuration.
-```
 
 ## ⌨️ Commands
 
@@ -185,6 +184,9 @@ set -g focus-events on
 
 ---
 
-<p align="center">
-  Made with ❤️ for Neovim
-</p>
+## 🙏 Acknowledgments
+
+This project was inspired by and built with reference to the following amazing projects:
+
+- [cellular-automaton.nvim](https://github.com/Eandrju/cellular-automaton.nvim) - A plugin for creating cool cellular automaton animations in Neovim
+- [Nixvim-Config](https://github.com/CodeBoyPhilo/Nixvim-Config/blob/87fac4c643889311d7b8e32bfa448e90c7c9308d/config/plugins/ui/dashboard/default.nix) - Dashboard configuration with asciiquarium integration that inspired the custom commands feature
