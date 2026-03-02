@@ -538,6 +538,25 @@ local function setup_autocmds()
   if vim.fn.exists("##KeyInput") == 1 then
     table.insert(events, "KeyInput")
   end
+  
+  local last_key_time = 0
+  vim.on_key(function(key)
+    if not key or key == "" then
+      return
+    end
+    if state.active or state.launching or state.rendering then
+      return
+    end
+
+    -- Throttle to prevent excessive scheduling during fast typing
+    local now = uv.now()
+    if now - last_key_time > 100 then
+      last_key_time = now
+      vim.schedule(function()
+        M._on_activity()
+      end)
+    end
+  end, vim.api.nvim_create_namespace("screensaver_global_key"))
 
   vim.api.nvim_create_autocmd("FocusLost", {
     group = state.augroup,
