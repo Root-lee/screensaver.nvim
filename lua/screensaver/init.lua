@@ -532,7 +532,7 @@ local function setup_autocmds()
     "FocusGained",
     "VimResized",
     "TermEnter",
-    "WinScrolled",
+    "TermRequest",
   }
 
   if vim.fn.exists("##KeyInput") == 1 then
